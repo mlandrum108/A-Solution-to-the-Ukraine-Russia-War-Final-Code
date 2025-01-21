@@ -1,0 +1,58 @@
+import numpy as np
+from scipy.spatial import ConvexHull
+
+def barycentric_coordinates(point, triangle):
+    # Compute the barycentric coordinates of 'point' with respect to the triangle
+    v0 = triangle[1] - triangle[0]
+    v1 = triangle[2] - triangle[0]
+    v2 = point - triangle[0]
+
+    d00 = np.dot(v0, v0)
+    d01 = np.dot(v0, v1)
+    d11 = np.dot(v1, v1)
+    d20 = np.dot(v2, v0)
+    d21 = np.dot(v2, v1)
+
+    denominator = d00 * d11 - d01 * d01
+
+    # Barycentric coordinates
+    v = (d11 * d20 - d01 * d21) / denominator
+    w = (d00 * d21 - d01 * d20) / denominator
+    u = 1 - v - w
+
+    return u, v, w
+
+def check_point_in_triangle(point, triangle):
+    u, v, w = barycentric_coordinates(point, triangle)
+    # Check if the point is inside the triangle (including edges)
+    return u >= 0 and v >= 0 and w >= 0 and u + v + w == 1
+
+# Define feasible points and Nash solution
+feasible = [
+    (100, 0, 0), (0, 100, 0), (0, 0, 50), (80, 15, 0), (80, 0, 5),
+    (0, 85, 5), (20, 85, 0), (0, 15, 45), (20, 0, 45), (60, 50, 0),
+    (60, 0, 15), (40, 50, 0), (0, 50, 15), (0, 50, 35), (40, 0, 35),
+    (60, 35, 0), (60, 0, 30), (40, 65, 0), (0, 65, 30), (40, 0, 20),
+    (0, 35, 20), (40, 50, 5), (40, 15, 15), (40, 35, 5), (40, 15, 30),
+    (20, 35, 15), (20, 50, 30)
+]
+feasible_np = np.array(feasible)
+nash = np.array([43.99991108155364, 40.000046699425425, 18.000038669179535])
+
+# Compute the convex hull
+hull = ConvexHull(feasible_np)
+
+# Check each simplex (triangle) in the convex hull to see if it contains the Nash solution
+containing_triangle = None
+for simplex in hull.simplices:
+    triangle = feasible_np[simplex]
+    if check_point_in_triangle(nash, triangle):
+        containing_triangle = triangle
+        break
+
+if containing_triangle is not None:
+    print("The Nash solution lies on the triangle with vertices:")
+    print(containing_triangle)
+else:
+    print("The Nash solution does not lie on any triangle of the convex hull.")
+# Ran in Python on Google Colab
