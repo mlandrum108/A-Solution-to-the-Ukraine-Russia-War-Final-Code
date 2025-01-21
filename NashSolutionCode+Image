@@ -1,0 +1,135 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[7]:
+
+
+import datetime
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.spatial import ConvexHull
+from sage.all import Polyhedron, vector, SR, minimize_constrained
+
+def solutions(ndim, feasible, dpp):
+    points = feasible.copy()
+    points.append(dpp)
+    possible = Polyhedron(points)
+    
+    con = [[0 for _ in range(ndim + 1)] for _ in range(ndim)]
+    for i in range(ndim):
+        con[i][i + 1] = 1
+        con[i][0] = -dpp[i]
+    ratn = Polyhedron(ieqs=con)
+    rational = possible.intersection(ratn)
+    
+
+    
+    vertices = [v.vector() for v in rational.Vrepresentation()]
+    aspiration = [max([x[i] for x in vertices]) for i in range(ndim)]
+    raif = Polyhedron(vertices=[dpp, aspiration])
+    raiffa = rational.intersection(raif)
+    vertices = [v.vector() for v in raiffa.vertices()]
+    if len(vertices) > 1 and vertices[0][0] > vertices[1][0]:
+        raif = vertices[0]
+    else:
+        raif = vertices[1] if len(vertices) > 1 else vertices[0]
+    
+    x = SR.var('x', ndim)
+    v = vector([1] + list(x))
+    con1 = [str(vector(c) * v) for c in rational.inequalities_list()]
+    con2 = ['lambda x: ' + c.replace('x0', 'x[0]').replace('x1', 'x[1]').replace('x2', 'x[2]') for c in con1]
+    con3 = [eval(c) for c in con2]
+    obj = lambda x: -np.prod([x[i] - dpp[i] for i in range(ndim)])
+    nash = minimize_constrained(obj, con3, egal)
+    
+    return [vector(aspiration), egal, raif, nash, possible, rational, egalitarian, raiffa]
+
+ndim = 3
+feasible = [
+    (100, 0, 0), (0, 100, 0), (0, 0, 50), (80, 15, 0), (80, 0, 5),
+    (0, 85, 5), (20, 85, 0), (0, 15, 45), (20, 0, 45), (60, 50, 0),
+    (60, 0, 15), (40, 50, 0), (0, 50, 15), (0, 50, 35), (40, 0, 35),
+    (60, 35, 0), (60, 0, 30), (40, 65, 0), (0, 65, 30), (40, 0, 20),
+    (0, 35, 20), (40, 50, 5), (40, 15, 15), (40, 35, 5), (40, 15, 30),
+    (20, 35, 15), (20, 50, 30)
+]
+dpp = [40, 35, 15]
+
+aspi, egal, raif, nash, possible, rational, egalitarian, raiffa = solutions(ndim, feasible, dpp)
+
+print("Nash Solution: ", nash)
+
+
+# In[8]:
+
+
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.spatial import ConvexHull
+from datetime import datetime
+
+# Define feasible points and disagreement point
+feasible = [
+    (100, 0, 0), (0, 100, 0), (0, 0, 50), (80, 15, 0), (80, 0, 5),
+    (0, 85, 5), (20, 85, 0), (0, 15, 45), (20, 0, 45), (60, 50, 0),
+    (60, 0, 15), (40, 50, 0), (0, 50, 15), (0, 50, 35), (40, 0, 35),
+    (60, 35, 0), (60, 0, 30), (40, 65, 0), (0, 65, 30), (40, 0, 20),
+    (0, 35, 20), (40, 50, 5), (40, 15, 15), (40, 35, 5), (40, 15, 30),
+    (20, 35, 15), (20, 50, 30)
+]
+dpp = [40, 35, 15]  # Disagreement Point
+nash = [43.9999, 40.0000, 18.0000]  # Correct Nash solution rounded to four decimals
+
+def plot_results(ax, angle1, angle2):
+    feasible_np = np.array(feasible)
+    
+    # Scatter plot for feasible points
+    ax.scatter(feasible_np[:, 0], feasible_np[:, 1], feasible_np[:, 2], color='lightgrey', alpha=0.5)
+
+    # Convex hull of feasible points
+    hull = ConvexHull(feasible_np)
+    for simplex in hull.simplices:
+        ax.plot(feasible_np[simplex, 0], feasible_np[simplex, 1], feasible_np[simplex, 2], color='grey', alpha=0.5)
+
+    # Plot Nash solution and disagreement point
+    ax.scatter(*nash, color='black', s=100)  # Nash point
+    ax.scatter(*dpp, color='purple', s=100)  # Disagreement point
+
+    # Display coordinates with offsets to avoid overlap
+    nash_coords = [round(coord, 4) for coord in nash]
+    dpp_coords = [round(coord, 4) for coord in dpp]
+    
+    # Position the text labels
+    ax.text(nash_coords[0], nash_coords[1], nash_coords[2] + 5, f'Nash: {tuple(nash_coords)}', color='black', fontsize=10)
+    ax.text(dpp_coords[0], dpp_coords[1], dpp_coords[2] - 5, f'Disagreement: {tuple(dpp_coords)}', color='purple', fontsize=10)
+
+    # Set axis limits
+    ax.set_xlim([0, 100])
+    ax.set_ylim([0, 100])
+    ax.set_zlim([0, 50])
+    ax.set_xlabel('Ukraine')
+    ax.set_ylabel('Russia')
+    ax.set_zlabel('NATO')
+
+    # Set viewing angle
+    ax.view_init(elev=angle1, azim=angle2)
+
+    # Generate a unique filename based on current timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    filename = f'plot_{timestamp}.png'
+    plt.savefig(filename)
+    plt.close()
+    return filename
+
+# Generate 12 plots with different angles
+angles = [(20, i * 30) for i in range(12)]
+filenames = []
+for angle1, angle2 in angles:
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    filename = plot_results(ax, angle1, angle2)
+    filenames.append(filename)
+
+filenames
+
+# Used in Colab running a SageMath kernel
