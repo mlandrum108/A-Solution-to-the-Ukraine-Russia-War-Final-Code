@@ -132,4 +132,62 @@ for angle1, angle2 in angles:
 
 filenames
 
+#In[10]:
+
+
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import numpy as np
+
+# Define the triangle vertices
+triangle_points = np.array([
+    [60, 50, 0],
+    [60, 0, 30],
+    [20, 50, 30]
+])
+
+# Define the Nash solution (rounded to integers)
+nash_solution = np.array([44, 40, 18])
+
+# Create a 3D plot
+fig = plt.figure(figsize=(10, 8))
+ax = fig.add_subplot(111, projection='3d')
+
+# Plot the triangle
+triangle = Poly3DCollection([triangle_points], alpha=0.5, edgecolor='black', facecolor='cyan')
+ax.add_collection3d(triangle)
+
+# Plot the triangle vertices
+ax.scatter(triangle_points[:, 0], triangle_points[:, 1], triangle_points[:, 2], color='blue', label='Vertices')
+
+# Label each vertex with its coordinates
+for point in triangle_points:
+    ax.text(*point, f'({point[0]}, {point[1]}, {point[2]})', fontsize=10, color='black', ha='right')
+
+# Plot and label the Nash solution point
+ax.scatter(*nash_solution, color='red', label='Nash Solution')
+
+# Adjust label position slightly upward by increasing the z-coordinate
+label_offset = 1  # Adjust this value to move it up more or less
+ax.text(nash_solution[0], nash_solution[1], nash_solution[2] + label_offset, 
+        f'Nash Solution\n({nash_solution[0]}, {nash_solution[1]}, {nash_solution[2]})', 
+        fontsize=10, color='black', ha='center', va='bottom')
+
+# Set labels
+ax.set_xlabel('Ukraine')
+ax.set_ylabel('Russia')
+ax.set_zlabel('NATO')
+
+# Set numeric ranges for axes
+ax.set_xlim(0, 100)  # Fix x-axis direction
+ax.set_ylim(100, 0)  # Flip y-axis by setting the range in reverse order
+ax.set_zlim(0, 50)  # Explicitly apply z-axis limit
+
+# Manually adjust the z-axis scaling after plotting the data
+ax.set_zscale('linear')  # Ensure the z-axis scale is linear (not logarithmic or other)
+
+# Show the plot
+plt.show()
+
+
 # Used in Colab running a SageMath kernel
