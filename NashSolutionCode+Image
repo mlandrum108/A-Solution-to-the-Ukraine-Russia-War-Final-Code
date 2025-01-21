@@ -191,3 +191,4 @@ plt.show()
 
 
 # Used in Colab running a SageMath kernel
+# Some of the images of the entire convex hull are not usable. However, about 30-40% are
