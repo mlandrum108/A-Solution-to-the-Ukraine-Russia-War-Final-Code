@@ -67,9 +67,9 @@ for angle in angles:
             ha='left', va='bottom')
 
     # Disagreement point
-    ax.scatter(*dpp, color='magenta', s=100)
+    ax.scatter(*dpp, color='red', s=100)
     ax.text(dpp[0], dpp[1], dpp[2] + 2,
-            f'Disagreement\n{dpp}', fontsize=9, color='magenta',
+            f'Disagreement\n{dpp}', fontsize=9, color='red',
             ha='left', va='bottom')
 
     ax.set_xlabel('Ukraine')
