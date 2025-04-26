@@ -29,23 +29,68 @@ def solutions(ndim, feasible, dpp):
 
     return nash
 
-# Setup
+def point_in_triangle_3d(p, tri_pts):
+    """Check if point p is inside the triangle formed by tri_pts in 3D using barycentric coordinates."""
+    from numpy.linalg import norm
+    v0 = tri_pts[1] - tri_pts[0]
+    v1 = tri_pts[2] - tri_pts[0]
+    v2 = p - tri_pts[0]
+    n = np.cross(v0, v1)
+    n_norm = norm(n)
+    if n_norm < 1e-8:
+        return False  # Degenerate triangle
+
+    # Check coplanarity
+    if abs(np.dot(n, v2)) > 1e-5:
+        return False
+
+    # Barycentric coordinates
+    dot00 = np.dot(v0, v0)
+    dot01 = np.dot(v0, v1)
+    dot02 = np.dot(v0, v2)
+    dot11 = np.dot(v1, v1)
+    dot12 = np.dot(v1, v2)
+    denom = dot00 * dot11 - dot01 * dot01
+    if denom == 0:
+        return False
+    u = (dot11 * dot02 - dot01 * dot12) / denom
+    v = (dot00 * dot12 - dot01 * dot02) / denom
+
+    return (u >= -1e-6) and (v >= -1e-6) and (u + v <= 1 + 1e-6)
+
+# Setup data
 ndim = 3
 feasible = [
-    (100, 0, 78), (0, 100, 12), (80, 15, 78),
-    (20, 85, 12), (40, 50, 58), (40, 65, 48),
-    (60, 35, 30), (60, 50, 48)
+    (100, 0, 70), (0, 100, 10), (90, 15, 70),
+    (80, 10, 70), (70, 25, 70), (65, 30, 40),
+    (55, 60, 40), (45, 40, 40), (35, 55, 40),
+    (65, 45, 40), (55, 60, 40), (45, 55, 40),
+    (35, 70, 40), (30, 75, 10), (20, 90, 10),
+    (10, 85, 10), (0, 100, 10)
 ]
-dpp = (40, 35, 0)
+dpp = (35, 38, 40)
 
-# Solve
+# Compute Nash solution
 nash = solutions(ndim, feasible, dpp)
-nash_int = tuple(int(round(coord)) for coord in nash)
+nash_rounded = tuple(round(coord, 3) for coord in nash)
 
-# Plotting with final adjustments
-angles = [30, 60, 90, 120, 150, 180]
+# Feasible region and convex hull
 feasible_np = np.array(feasible)
 hull = ConvexHull(feasible_np)
+
+# Check which triangle contains the Nash solution
+highlight_simplex = None
+for idx, simplex in enumerate(hull.simplices):
+    tri_pts = feasible_np[simplex]
+    if point_in_triangle_3d(np.array(nash), tri_pts):
+        print(f'Nash solution lies on triangle {idx} with vertices:\n{tri_pts}\n')
+        highlight_simplex = simplex
+        break
+if highlight_simplex is None:
+    print("Nash solution does not lie exactly on any triangle of the convex hull.")
+
+# Plotting (without plotting the Nash point)
+angles = [30, 60, 90, 120, 150, 180]
 figsize = (10, 8)
 dpi = 150
 
@@ -57,29 +102,25 @@ for angle in angles:
 
     for simplex in hull.simplices:
         pts = feasible_np[simplex]
-        tri = Poly3DCollection([pts], alpha=0.15, facecolor='gray', edgecolor='black')
+        if np.array_equal(simplex, highlight_simplex):
+            tri = Poly3DCollection([pts], alpha=0.5, facecolor='gold', edgecolor='black')
+        else:
+            tri = Poly3DCollection([pts], alpha=0.15, facecolor='gray', edgecolor='black')
         ax.add_collection3d(tri)
-
-    # Nash solution (rounded)
-    ax.scatter(*nash, color='black', s=100)
-    ax.text(nash[0], nash[1], nash[2] + 2, 
-            f'Nash\n{nash_int}', fontsize=9, color='black',
-            ha='left', va='bottom')
 
     # Disagreement point
     ax.scatter(*dpp, color='red', s=100)
-    ax.text(dpp[0], dpp[1], dpp[2] + 2,
+    ax.text(dpp[0] - 5, dpp[1], dpp[2] - 9,
             f'Disagreement\n{dpp}', fontsize=9, color='red',
-            ha='left', va='bottom')
+            ha='right', va='bottom')
 
     ax.set_xlabel('Ukraine')
     ax.set_ylabel('Russia')
     ax.set_zlabel('West')
 
-    ax.view_init(elev=25, azim=angle)
+    ax.view_init(elev=18, azim=angle)
     plt.tight_layout()
     plt.show()
-
 -------------------------------------------------------------------------------------------------------------------
 PART 2 BE READY
 
